@@ -5,11 +5,11 @@
 
 #include <atomic>
 #include <chrono>
+#include <csignal>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <vector>
-#include <csignal>
 
 #include "ouster/client.h"
 #include "ouster/impl/build.h"
@@ -20,6 +20,7 @@ using namespace ouster;
 
 std::atomic<bool> keep_running{true};
 
+//  A function to handle signals and update the keep_running flag.
 void signal_handler(int signal) { keep_running = false; }
 
 void FATAL(const char* msg) {
@@ -132,8 +133,12 @@ int main(int argc, char* argv[]) {
                 // (accounting for azimuth_window settings if any)
                 if (scan.complete(info.format.column_window)) {
                     auto endtime1 = std::chrono::steady_clock::now();
-                    double duration_milliseconds = std::chrono::duration<double, std::milli>(endtime1-beforetime1).count();
-                    std::cout << "frame cost " << duration_milliseconds << "ms" << std::endl;
+                    double duration_milliseconds =
+                        std::chrono::duration<double, std::milli>(endtime1 -
+                                                                  beforetime1)
+                            .count();
+                    std::cout << "frame cost " << duration_milliseconds << "ms"
+                              << std::endl;
                     beforetime1 = std::chrono::steady_clock::now();
                     auto cloud = ouster::cartesian(scan, lut);
 
@@ -160,23 +165,20 @@ int main(int argc, char* argv[]) {
                                   << " valid first returns at " << ts_ms.count()
                                   << " ms" << std::endl;
 
-                        if (count<=0){
-                            // write scan to a file:
-                            std::ofstream out("latest_cloud.csv");
-                            out << std::fixed << std::setprecision(4);
+                        // write scan to a file:
+                        // std::ofstream out("latest_cloud.csv");
+                        // out << std::fixed << std::setprecision(4);
 
-                            // write each point, filtering out points without
-                            // returns
-                            for (int i = 0; i < cloud.rows(); i++) {
-                                auto xyz = cloud.row(i);
-                                if (!xyz.isApproxToConstant(0.0))
-                                    out << xyz(0) << ", " << xyz(1) << ", "
-                                        << xyz(2) << std::endl;
-                            }
+                        // // write each point, filtering out points without
+                        // // returns
+                        // for (int i = 0; i < cloud.rows(); i++) {
+                        //     auto xyz = cloud.row(i);
+                        //     if (!xyz.isApproxToConstant(0.0))
+                        //         out << xyz(0) << ", " << xyz(1) << ", "
+                        //             << xyz(2) << std::endl;
+                        // }
 
-                            out.close();
-                            count++;
-                        }
+                        // out.close();
                     }
                 }
             }
@@ -185,8 +187,6 @@ int main(int argc, char* argv[]) {
         if (st & sensor::IMU_DATA) {
             sensor::read_imu_packet(*handle, imu_packet);
         }
-
-        
     }
 
     std::cerr << "Stopped point cloud streaming" << std::endl;
